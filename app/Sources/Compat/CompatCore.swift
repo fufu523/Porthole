@@ -46,13 +46,20 @@ enum CompatTag: String, Codable, CaseIterable, Identifiable {
 
 /// Where the game's files came from. A fixed list on purpose: nobody types a website, so no download site can end up in a report.
 enum CompatSource: String, Codable, CaseIterable, Identifiable {
-    case steam, gog, epic, itch, humble, physical, demo, other
+    case steam, gog, epic, amazon, itch, humble, physical, demo, other
     var id: String { rawValue }
+
+    /// A source this app does not know (one added in a later version) reads as "other" instead of making the whole answer unreadable.
+    init(from decoder: Decoder) throws {
+        let value = try decoder.singleValueContainer().decode(String.self)
+        self = CompatSource(rawValue: value) ?? .other
+    }
     var title: String {
         switch self {
         case .steam: "Steam"
         case .gog: "GOG"
         case .epic: "Epic Games Store"
+        case .amazon: "Amazon Games"
         case .itch: "itch.io"
         case .humble: "Humble Bundle"
         case .physical: "A disc or my own backup"
@@ -372,7 +379,8 @@ struct CompatClient: Sendable {
     }
 
     func get<T: Decodable>(_ path: String, _ query: [(String, String)] = [], as type: T.Type) async throws -> T {
-        var request = URLRequest(url: try url(path, query))
+        // "sources=2": this app reads every report source (Amazon Games came after the first apps); the server shows older apps the newer ones as "other".
+        var request = URLRequest(url: try url(path, query + [("sources", "2")]))
         request.cachePolicy = .reloadIgnoringLocalCacheData
         return try await perform(request, as: type)
     }

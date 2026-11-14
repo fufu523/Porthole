@@ -289,6 +289,9 @@ enum MadeiraDock {
             }
             if result == 35 { return "Steam did not confirm a license for this game on the signed-in account." }
             // Offline start (madeira-dock docs/OFFLINE.md): Valve's client decides.
+            if [50, 51, 52].contains(result), DockOffline.sessionChoseSaved {
+                return "Steam could not use its saved sign-in for this game. Press Play again: it signs in online this time and saves a new one."
+            }
             if result == 50 {
                 return fields["session-offline-abi"] == "0"
                     ? "There is no connection, and this Steam client build cannot be started offline by Madeira Dock. Connect to the internet and try again."
@@ -532,7 +535,7 @@ enum MadeiraDock {
         let guardMap = SteamSignIn.flag("MADEIRA_DOCK_IMAGE_MAP_GUARD", default: true)
         if guardMap { setenv("MADEIRA_IMAGE_MAP_GUARD", "1", 1) }
         SteamLog.event("[dock-launch] image-map-guard=\(guardMap ? 1 : 0)")
-        DockOffline.configure(appID: game.id)
+        DockOffline.configure(appID: game.id, override: DockOffline.pendingOverride)
     }
 
     /// Wine's explorer opens a virtual desktop and starts the host in it. With
@@ -644,12 +647,41 @@ enum DockOffline {
     private(set) static var sessionApp: Int?
     private static var sessionMarked = false
 
-    /// Part of MadeiraDock.configure: tells the host when there is no network.
-    static func configure(appID: Int) {
+    // Porthole: a start that uses Steam's saved sign-in although a network is there. The licence question is then answered from what Valve's client cached when this game last
+    // started online, which saves the sign-in and the ownership check (about ten seconds) on every start. The saved sign-in is only used for a game that started online in a
+    // session in which Valve's client could log the account on offline (`verified`), for at most `savedMaxAge` after that start (the next start goes online and renews it), and
+    // never again after Steam refused it once (`forceOnline`: the next start is online). The in-game Steam features that need a connection (multiplayer, achievements) do not
+    // work in such a session: a game's own page can ask for an online sign-in every time.
+    static let savedSignInKey = "f4.dockSavedSignIn", forceOnlineKey = "madeiraDockForceOnline"
+    static var savedSignInWanted: Bool { UserDefaults.standard.object(forKey: savedSignInKey) as? Bool ?? true }
+    /// True when the host was asked for an offline logon only because the app chose to (a network was there).
+    private(set) static var sessionChoseSaved = false
+    /// The game's own choice for the start about to be configured (set by the session before MadeiraDock.configure).
+    nonisolated(unsafe) static var pendingOverride: Int?
+    private static var forcedOnline: Set<Int> {
+        get { Set((UserDefaults.standard.array(forKey: forceOnlineKey) as? [Int]) ?? []) }
+        set { UserDefaults.standard.set(Array(newValue), forKey: forceOnlineKey) }
+    }
+
+    /// Whether this start may use Steam's saved sign-in with a network; `override` is the game's own choice (0 saved sign-in, 1 online every time).
+    static func savedStart(appID: Int, override: Int?, now: Date = Date()) -> (use: Bool, why: String) {
+        SavedSignInRule.decide(enabled: enabled, override: override, settingOn: savedSignInWanted, forcedOnline: forcedOnline.contains(appID),
+                               accountSaved: accountSaved != nil, verified: verified(appID), now: now)
+    }
+
+    /// The next start of this game signs in online (Steam could not use its saved sign-in).
+    static func requireOnline(_ appID: Int) { var s = forcedOnline; s.insert(appID); forcedOnline = s }
+
+    /// Part of MadeiraDock.configure: tells the host when there is no network, or when the saved sign-in is to be used.
+    static func configure(appID: Int, override: Int? = nil) {
         sessionApp = appID
         sessionMarked = false
-        let offline = enabled && networkDown
+        let down = enabled && networkDown
+        let choice = down ? (use: false, why: "no network") : savedStart(appID: appID, override: override)
+        sessionChoseSaved = choice.use
+        let offline = down || choice.use
         if offline { setenv("MADEIRA_DOCK_OFFLINE", "1", 1) } else { unsetenv("MADEIRA_DOCK_OFFLINE") }
+        if !down { SteamLog.event("[dock-offline] saved sign-in start: \(choice.use ? "yes" : "no") (\(choice.why))") }
         SteamLog.event("[dock-offline] enabled=\(enabled ? 1 : 0) network=\(networkDown ? "down" : "up") request=\(offline ? 1 : 0) account-saved=\(accountSaved != nil ? 1 : 0) game-started-online=\(verified(appID) != nil ? 1 : 0)")
     }
 
@@ -657,6 +689,13 @@ enum DockOffline {
     /// in which Valve's client confirmed the licence and reported that it can log
     /// the account on offline saves the game for offline play.
     @MainActor static func observe(_ fields: [String: String]) {
+        if sessionChoseSaved, let app = sessionApp, let result = fields["probe-result"].flatMap(Int.init), [50, 51, 52].contains(result) {
+            requireOnline(app)
+            SteamLog.event("[dock-offline] Steam could not use its saved sign-in (code \(result)): the next start of this game signs in online")
+        }
+        if sessionApp != nil, !sessionChoseSaved, fields["session-authenticated-online"] == "1", let app = sessionApp, forcedOnline.contains(app) {
+            var s = forcedOnline; s.remove(app); forcedOnline = s
+        }
         guard enabled, !sessionMarked, let app = sessionApp,
               fields["session-offline-requested"] == nil,
               fields["session-requested-app-listed"] == "1",

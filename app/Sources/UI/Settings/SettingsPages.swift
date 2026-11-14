@@ -335,6 +335,7 @@ struct SteamSettingsPage: View {
     @Environment(AppRouter.self) private var router
     @AppStorage(SessionController.dockDesktopKey) private var dockDesktop = true
     @AppStorage(SessionController.cloudDownloadKey) private var cloudDownload = true
+    @AppStorage(DockOffline.savedSignInKey) private var savedSignIn = true
     @AppStorage("f4.advanced") private var advanced = false
     @State private var clientInstalled = MadeiraDock.clientInstalled
     @State private var clientBusy = false
@@ -412,6 +413,11 @@ struct SteamSettingsPage: View {
                         controllerLayer.toggle()
                     }
                 }
+            }
+            SettingsGroup(title: "Starting games", note: "How Steam signs in when a game starts.") {
+                ToggleRow(id: "st-saved-signin", symbol: "bolt.badge.checkmark.fill", title: "Start from Steam's saved sign-in",
+                          info: "On: once a game has started online, the next starts use what Steam saved: no new sign-in and no ownership check each time, about ten seconds faster. Steam renews the saved sign-in with an online start, which happens by itself after two weeks or when Steam could not use it. In such a start Steam is offline, so what needs a connection inside the game (multiplayer, Steam achievements) does not work: a game's own page can ask for an online sign-in every time. Off: every start signs in online, as before.",
+                          isOn: $savedSignIn)
             }
             SettingsGroup(title: "Steam Cloud", note: "Your game saves on Steam's servers.") {
                 ToggleRow(id: "st-cloud", symbol: "icloud.and.arrow.down.fill", title: "Download my cloud saves before a game starts",

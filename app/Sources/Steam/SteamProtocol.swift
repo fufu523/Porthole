@@ -504,6 +504,11 @@ enum SteamCipher {
     /// What a downloaded chunk turns into: decrypt, then undo VZip (LZMA) or zip compression. Nil if it does not decode.
     static func unpackChunk(_ encrypted: Data, key: Data, originalSize: Int) -> Data? {
         guard let plain = decrypt(encrypted, key: key) else { return nil }
+        return unpackPlain(plain, originalSize: originalSize)
+    }
+
+    /// What a chunk (or a cloud file) turns into once it is no longer encrypted: undo the zip, VZstd or VZip wrapping. Nil if it is none of them or does not decode.
+    static func unpackPlain(_ plain: Data, originalSize: Int) -> Data? {
         let b = Array(plain)
         if b.count > 4, b[0] == 0x50, b[1] == 0x4B, b[2] == 3, b[3] == 4 { return Deflate.unzipFirstEntry(plain) }
         // VZstd: "VSZa", crc(4), one Zstandard frame, then a 15-byte footer: crc(4), size(8, little endian), "zsv".

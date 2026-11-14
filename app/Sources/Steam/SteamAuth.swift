@@ -200,11 +200,16 @@ final class KeychainSteamSessionStore: SteamSessionStore {
     }
     func save(_ session: SteamAccountSession) {
         guard let data = try? JSONEncoder().encode(session) else { return }
-        SecItemDelete(identity as CFDictionary)
-        var add = identity
-        add[kSecValueData as String] = data
-        add[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-        let status = SecItemAdd(add as CFDictionary, nil)
+        // Updated in place: the old copy is never deleted first, so a failed or interrupted save (the app closed, the device locked, two saves at once) cannot leave no sign-in at all.
+        let accessible = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        var status = SecItemUpdate(identity as CFDictionary, [kSecValueData as String: data, kSecAttrAccessible as String: accessible] as CFDictionary)
+        if status == errSecItemNotFound {
+            var add = identity
+            add[kSecValueData as String] = data
+            add[kSecAttrAccessible as String] = accessible
+            status = SecItemAdd(add as CFDictionary, nil)
+            if status == errSecDuplicateItem { status = SecItemUpdate(identity as CFDictionary, [kSecValueData as String: data, kSecAttrAccessible as String: accessible] as CFDictionary) }
+        }
         if status != errSecSuccess { SteamLog.event("Steam: the sign-in could not be kept in the Keychain (status \(status)); you will sign in again next time.") }
     }
     func clear() { SecItemDelete(identity as CFDictionary) }

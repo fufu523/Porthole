@@ -113,7 +113,7 @@ final class BuiltinJIT: NSObject, F4JITHost {
     @discardableResult
     func start(stage: @escaping (String) -> Void, onAttached: @escaping () -> Void, report: @escaping (String) -> Void) -> Bool {
         dispatchPrecondition(condition: .onQueue(.main))
-        guard launcher == nil else { report("Relaunch the app before another JIT attempt."); return false }
+        guard launcher == nil else { report("JIT can only be tried once each time Porthole is opened. Close Porthole completely (swipe it away in the app switcher), open it again from the Home Screen, check that LocalDevVPN is on, and start the game again."); return false }
         guard #available(iOS 18, *) else { report("In-app JIT needs iOS 18 or later."); return false }
         guard F4HasDebugEntitlement() else { report("JIT cannot be turned on for this copy of Porthole: it was installed with a certificate that does not allow debugging (the \u{201C}get-task-allow\u{201D} permission, which distribution and enterprise certificates do not carry). Install Porthole again signed with a development certificate, for example with SideStore or AltStore and a free Apple ID."); return false }
         guard !jit_check_debugged() else {

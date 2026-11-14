@@ -862,6 +862,41 @@ do {
         let n = out.withUnsafeMutableBytes { dst in d.withUnsafeBytes { src in compression_encode_buffer(dst.bindMemory(to: UInt8.self).baseAddress!, dst.count, src.bindMemory(to: UInt8.self).baseAddress!, d.count, nil, COMPRESSION_ZLIB) } }
         return Data([0x78, 0x9c]) + out.prefix(n) + Data([0, 0, 0, 0])
     }
+    func rawDeflate(_ d: Data) -> Data {
+        var out = Data(count: d.count + 1024)
+        let n = out.withUnsafeMutableBytes { dst in d.withUnsafeBytes { src in compression_encode_buffer(dst.bindMemory(to: UInt8.self).baseAddress!, dst.count, src.bindMemory(to: UInt8.self).baseAddress!, d.count, nil, COMPRESSION_ZLIB) } }
+        return out.prefix(n)
+    }
+    func le(_ v: Int, _ n: Int) -> Data { Data((0..<n).map { UInt8((v >> (8 * $0)) & 0xFF) }) }
+    func zipOne(_ d: Data, deflated: Bool) -> Data {          // a zip archive with one entry "save", sizes in the central directory like Steam's
+        let body: Data = deflated ? rawDeflate(d) : d
+        let name = Data("save".utf8)
+        let method = deflated ? 8 : 0
+        var local = Data()
+        for (v, n) in [(0x04034B50, 4), (20, 2), (0, 2), (method, 2), (0, 4), (0, 4), (body.count, 4), (d.count, 4), (name.count, 2), (0, 2)] { local.append(le(v, n)) }
+        local.append(name); local.append(body)
+        var central = Data()
+        for (v, n) in [(0x02014B50, 4), (20, 2), (20, 2), (0, 2), (method, 2), (0, 4), (0, 4), (body.count, 4), (d.count, 4), (name.count, 2), (0, 2), (0, 2), (0, 2), (0, 2), (0, 4), (0, 4)] { central.append(le(v, n)) }
+        central.append(name)
+        var end = Data()
+        for (v, n) in [(0x06054B50, 4), (0, 2), (0, 2), (1, 2), (1, 2), (central.count, 4), (local.count, 4), (0, 2)] { end.append(le(v, n)) }
+        return local + central + end
+    }
+    func gzipOne(_ d: Data) -> Data { var g = Data([0x1F, 0x8B, 8, 0, 0, 0, 0, 0, 0, 3]); g.append(rawDeflate(d)); g.append(le(0, 4)); g.append(le(d.count, 4)); return g }
+    let sample = Data((0..<20000).map { UInt8(($0 / 7) % 251) })
+    let sampleSHA = Data(Insecure.SHA1.hash(data: sample))
+    let sampleInfo = SteamCloudDownloadInfo(host: "h.example", path: "/x", https: true, headers: [:], fileSize: 0, rawSize: sample.count, sha1: sampleSHA, timestamp: 0, explicitDelete: false, encrypted: false)
+    let sampleListed = SteamCloudFile(name: "x", sha1: sampleSHA, timestamp: 0, size: sample.count, persistState: 0, platforms: 1, pathPrefixIndex: nil)
+    let headed: [(String, Data)] = [("a zip after a 4-byte header", le(77, 4) + zipOne(sample, deflated: true)), ("a gzip after a 12-byte header", Data(repeating: 7, count: 12) + gzipOne(sample)), ("bare deflate after a 4-byte header", le(sample.count, 4) + rawDeflate(sample))]
+    for (label, wrapped) in headed {
+        check(SteamCloudSync.verified(wrapped, expecting: sampleInfo, listed: sampleListed) == sample, "cloud: a file served as \(label) is unpacked and checked")
+    }
+    let wrappings: [(String, Data)] = [("as it is", sample), ("zlib", packed(sample)), ("bare deflate", rawDeflate(sample)), ("gzip", gzipOne(sample)), ("a zip, deflated", zipOne(sample, deflated: true)), ("a zip, stored", zipOne(sample, deflated: false))]
+    for (label, wrapped) in wrappings {
+        check(SteamCloudSync.verified(wrapped, expecting: sampleInfo, listed: sampleListed) == sample, "cloud: a file served \(label) is unpacked and checked")
+    }
+    check(SteamCloudSync.verified(zipOne(Data(sample.reversed()), deflated: true), expecting: sampleInfo, listed: sampleListed) == nil && SteamCloudSync.verified(sample.prefix(5000), expecting: sampleInfo, listed: sampleListed) == nil, "cloud: bytes that are not the listed file are never accepted, wrapped or not")
+    check(SteamCloudSync.describe(zipOne(sample, deflated: true), info: sampleInfo, listed: sampleListed).contains("starting 50 4b 03 04"), "cloud: a failure line says what the file started with")
     let names = (main: "%WinAppDataRoaming%Factorio/saves/main.zip", start: "%WinAppDataRoaming%Factorio/saves/start.zip")
     let files = list!.files.filter { $0.name == names.main || $0.name == names.start }
     let saves = driveC.appendingPathComponent("users/mobile/AppData/Roaming/Factorio/saves")

@@ -2,6 +2,7 @@
 // Copyright (C) 2026 The Porthole authors. See LICENSE.
 import Foundation
 import CryptoKit
+import Compression
 
 // Steam Cloud, download only: before a game is started through Steam, bring this person's own cloud files for it onto the device, the way Valve's client does before
 // it launches a game. Written for Porthole from Steam's published service messages (Cloud.GetAppFileChangelist and Cloud.ClientFileDownload); nothing from another
@@ -200,19 +201,83 @@ enum SteamCloudSync {
         return Data(hasher.finalize())
     }
 
+    /// Every way a file might have been wrapped, tried in turn: as it is, or zlib, bare deflate, gzip, a zip with one entry, a Zstandard frame, or Steam's own VZip and VZstd
+    /// wrappers; then the same after a short header (the wrapper is looked for in the first 64 bytes), and last the system's other decoders. Each candidate is only a guess about
+    /// what the file might be: `verified` keeps one only when its SHA-1 is the one Steam listed.
+    static func candidates(of served: Data, rawSize: Int) -> [() -> Data?] {
+        var list: [() -> Data?] = [{ served }]
+        guard served.count >= 2 else { return list }
+        list += unwrap(served, rawSize: rawSize)
+        let bytes = [UInt8](served.prefix(72))
+        if bytes.count > 8 {
+            for offset in 1...min(64, bytes.count - 5) where startsWrapper(bytes, at: offset) {
+                let tail = Data(served.dropFirst(offset))
+                list += unwrap(tail, rawSize: rawSize)
+            }
+        }
+        if rawSize > 0 {
+            for offset in [2, 4, 8, 12, 16] where served.count > offset + 8 { let tail = Data(served.dropFirst(offset)); list.append { Deflate.inflate(tail, expectedSize: rawSize) } }
+            for algorithm in [COMPRESSION_LZMA, COMPRESSION_LZFSE, COMPRESSION_LZ4, COMPRESSION_LZ4_RAW] { list.append { systemDecode(served, algorithm, rawSize: rawSize) } }
+        }
+        return list
+    }
+
+    private static func startsWrapper(_ b: [UInt8], at i: Int) -> Bool {
+        guard i + 4 <= b.count else { return false }
+        return (b[i] == 0x50 && b[i + 1] == 0x4B && b[i + 2] == 3 && b[i + 3] == 4) || (b[i] == 0x1F && b[i + 1] == 0x8B && b[i + 2] == 8)
+            || (b[i] == 0x28 && b[i + 1] == 0xB5 && b[i + 2] == 0x2F && b[i + 3] == 0xFD) || (b[i] == 0x56 && ((b[i + 1] == 0x5A && b[i + 2] == 0x61) || (b[i + 1] == 0x53 && b[i + 2] == 0x5A && b[i + 3] == 0x61)))
+            || (b[i] == 0x78 && [0x01, 0x5E, 0x9C, 0xDA].contains(b[i + 1]))
+    }
+
+    /// The wrappers that can be told from the first bytes.
+    private static func unwrap(_ served: Data, rawSize: Int) -> [() -> Data?] {
+        let b = [UInt8](served.prefix(4))
+        guard b.count >= 2 else { return [] }
+        var list: [() -> Data?] = []
+        if b[0] == 0x1F, b[1] == 0x8B { list.append { Deflate.gunzip(served, expectedSize: rawSize) } }
+        if b.count == 4, b[0] == 0x50, b[1] == 0x4B, b[2] == 3, b[3] == 4 { list.append { Deflate.unzipFirstEntry(served) } }
+        if b.count == 4, b[0] == 0x28, b[1] == 0xB5, b[2] == 0x2F, b[3] == 0xFD {
+            list.append { let all = [UInt8](served); return Zstd.decompress(all, from: 0, to: all.count, expectedSize: rawSize).map { Data($0) } }
+        }
+        if b.count == 4, b[0] == 0x56 { list.append { SteamCipher.unpackPlain(served, originalSize: rawSize) } }       // "VZa" / "VSZa"
+        if rawSize > 0 {
+            if served.count >= 6, b[0] & 0x0F == 8 {                                                                      // a zlib header (78 xx): the packed form
+                list.append { Deflate.inflate(served.dropFirst(2).dropLast(4), expectedSize: rawSize) }
+                list.append { Deflate.inflate(served.dropFirst(2), expectedSize: rawSize) }
+            }
+            list.append { Deflate.inflate(served, expectedSize: rawSize) }
+        }
+        return list
+    }
+
+    private static func systemDecode(_ data: Data, _ algorithm: compression_algorithm, rawSize: Int) -> Data? {
+        guard rawSize > 0, rawSize < 1 << 30 else { return nil }
+        var out = Data(count: rawSize)
+        let written = out.withUnsafeMutableBytes { dst -> Int in
+            data.withUnsafeBytes { src -> Int in
+                guard let d = dst.bindMemory(to: UInt8.self).baseAddress, let s = src.bindMemory(to: UInt8.self).baseAddress else { return 0 }
+                return compression_decode_buffer(d, rawSize, s, data.count, nil, algorithm)
+            }
+        }
+        return written == rawSize ? out : nil
+    }
+
     /// The file's final bytes, or nil if what arrived is not the file Steam listed. Served bytes are used as they are when their SHA-1 matches; when Steam says the served form is
-    /// smaller than the file, the zlib-packed form is unpacked and checked the same way. Nothing unverified is ever returned.
+    /// smaller than the file, every known wrapping is undone and checked the same way. Nothing unverified is ever returned.
     static func verified(_ served: Data, expecting info: SteamCloudDownloadInfo, listed: SteamCloudFile) -> Data? {
         let want = listed.sha1.isEmpty ? info.sha1 : listed.sha1
         guard want.count == 20 else { return nil }
-        func matches(_ d: Data) -> Bool { Data(Insecure.SHA1.hash(data: d)) == want }
-        if matches(served) { return served }
         let rawSize = info.rawSize > 0 ? info.rawSize : listed.size
-        if rawSize > 0, served.count >= 6, served[served.startIndex] & 0x0F == 8 {          // a zlib header (78 xx): the packed form
-            if let unpacked = Deflate.inflate(served.dropFirst(2).dropLast(4), expectedSize: rawSize), matches(unpacked) { return unpacked }
+        for candidate in candidates(of: served, rawSize: rawSize) {
+            if let data = candidate(), Data(Insecure.SHA1.hash(data: data)) == want { return data }
         }
-        if rawSize > 0, let unpacked = Deflate.inflate(served, expectedSize: rawSize), matches(unpacked) { return unpacked }
         return nil
+    }
+
+    /// For the log when a file does not check out: how big it was, what it started with, and what Steam said it should be.
+    static func describe(_ served: Data, info: SteamCloudDownloadInfo, listed: SteamCloudFile) -> String {
+        let head = served.prefix(8).map { String(format: "%02x", $0) }.joined(separator: " ")
+        return "\(served.count) bytes served (starting \(head.isEmpty ? "-" : head)), Steam said \(info.fileSize) served and \(info.rawSize > 0 ? info.rawSize : listed.size) listed"
     }
 
     /// Brings the person's cloud files for `appID` onto this device. Never throws for one bad file: it is counted in the report and the rest go on.
@@ -261,9 +326,12 @@ enum SteamCloudSync {
                 let info = try await transport.downloadInfo(appID: appID, fileName: job.full)
                 if info.explicitDelete { return .skipped("skipped (deleted on Steam)") }
                 if info.encrypted { return .failed("failed (Steam sent it encrypted; not supported)") }
-                let served = try await transport.fetch(info)
-                guard let data = verified(served, expecting: info, listed: job.file) else {
-                    return .failed("failed (the download did not match Steam's checksum: \(served.count) bytes served, \(job.file.size) listed; not saved)")
+                var served = try await transport.fetch(info)
+                var checked = verified(served, expecting: info, listed: job.file)
+                // A link that was cut short is fetched once more before the file is given up on.
+                if checked == nil, info.fileSize > 0, served.count != info.fileSize { served = try await transport.fetch(info); checked = verified(served, expecting: info, listed: job.file) }
+                guard let data = checked else {
+                    return .failed("failed (the download did not match Steam's checksum: \(describe(served, info: info, listed: job.file)); not saved)")
                 }
                 try fm.createDirectory(at: job.dest.deletingLastPathComponent(), withIntermediateDirectories: true)
                 let part = URL(fileURLWithPath: job.dest.path + ".porthole-part")

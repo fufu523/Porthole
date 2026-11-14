@@ -707,6 +707,7 @@ final class SessionController: ObservableObject {
             if SteamClientLanguage.ensure(prefix: AppModel.prefix) { LogStore.shared.log("[dock] set Steam's language in the prefix registry") }
             // Valve's client is asked for one of the game's numbered launch options. Madeira's host reads it from MADEIRA_STEAM_HOST_LAUNCH_OPTION, which configure() always sets
             // (0 unless it is given one: Factorio's options are 1, 2, 3 and 5, so 0 made Steam refuse and the host retry forever). Our own variable below is only the fallback.
+            DockOffline.pendingOverride = game.settings?.steamSignIn
             MadeiraDock.configure(dockGame, launchOption: UInt32(clamping: launchOption))
             if launchOption != 0 { setenv("MADEIRA_DOCK_LAUNCH_OPTION", String(launchOption), 1) } else { unsetenv("MADEIRA_DOCK_LAUNCH_OPTION") }
             // A game whose listed program cannot run here (Rust: Easy Anti-Cheat's launcher) gets its own program started next to Valve's client instead of

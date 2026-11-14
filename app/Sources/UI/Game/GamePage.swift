@@ -269,7 +269,13 @@ struct GamePage: View {
                     ChoiceRow(id: "gp-mode", symbol: "shield.checkered", title: "Start",
                               info: "Through Steam: Valve's own client checks your licence first. Most Steam games need this. Run directly: starts the game without Steam. Only use it for games that don't check Steam when they start; a game that does will freeze on its first screen.",
                               options: [(false, "Through Steam"), (true, "Run directly")], selection: Binding(get: { g.launchDirect == true }, set: { model.setLaunchDirect($0, for: g) }))
-                    if g.launchDirect != true, DockOffline.enabled { OfflineMarkRow(appID: dockID) }
+                    if g.launchDirect != true, DockOffline.enabled {
+                        OfflineMarkRow(appID: dockID)
+                        OverrideRow(id: "gp-signin", symbol: "person.badge.key.fill", title: "Steam sign-in",
+                                    info: "Saved sign-in: after the game has started online once, later starts use what Steam saved (no new sign-in or ownership check; Steam is offline inside the game, so multiplayer and Steam achievements do not work). Online every time: Steam signs in online at each start. Default follows Settings > Steam.",
+                                    value: s.steamSignIn, globalText: DockOffline.savedSignInWanted ? "Saved sign-in when ready" : "Online every time",
+                                    options: [(0, "Saved sign-in when ready"), (1, "Online every time")]) { v in setting(g) { $0.steamSignIn = v } }
+                    }
                 }
                 OverrideRow(id: "gp-res", symbol: "display", title: "Resolution", info: "The size of the screen this game sees. Default follows Settings > Display. Applies the next time the game starts.",
                             value: DisplayResolution.offered(s.resolution), globalText: globalRes,

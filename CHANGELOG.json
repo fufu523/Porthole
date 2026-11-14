@@ -1,5 +1,22 @@
 [
   {
+    "version": "1.3.1",
+    "build": "928",
+    "summary": "Steam Cloud saves that Steam sends packed in other ways now download, Steam games start from Steam's saved sign-in once they have started online, and compatibility reports can say a game came from Amazon Games.",
+    "added": [
+      "Settings > Steam > Starting games > Start from Steam's saved sign-in (on): once a game has started online, its next starts use what Steam saved, so there is no new sign-in and no ownership check each time (about ten seconds faster), and a game can start with no connection at all. Steam renews the saved sign-in with an online start, which happens by itself two weeks after the last one, or when Steam could not use it (the game then says so and the next Play signs in online). Inside such a start Steam is offline, so multiplayer and Steam achievements do not work: a game's own page has Steam sign-in: Online every time for those.",
+      "Compatibility reports: \"Amazon Games\" is now one of the choices for where the game's files came from."
+    ],
+    "changed": [
+      "After a failed attempt to switch JIT on, the message now says what to do (close Porthole completely and open it again, with LocalDevVPN on) instead of only \"Relaunch the app\"."
+    ],
+    "fixed": [
+      "Steam Cloud download: a save that Steam sends compressed in a way the app did not recognise (for example a zip, gzip or Zstandard wrapper, or Steam's own VZip and VZstd forms) failed the checksum and was not saved. Every packing Steam is known to use is now unpacked, and the file is still saved only when it matches Steam's checksum.",
+      "Steam Cloud download: a file whose link was cut short is fetched once more before it is given up on, and a file that still fails now says in the log how big it was, what it started with and what Steam said, so the cause can be read from one report.",
+      "The saved Steam sign-in is now updated in place in the Keychain. Before, the old copy was deleted first, so a save that failed or was cut short (the app closed, the device locked, two saves at once) could leave no sign-in and ask you to sign in again."
+    ]
+  },
+  {
     "version": "1.3.0",
     "build": "870",
     "summary": "Full Sail: upscaling and frame generation, Steam Cloud saves, fixes that ask first, on-screen controllers and better touch controls, downloads to an external drive, Blender, and Settings reorganised into short pages with a Controls page.",
