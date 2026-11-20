@@ -29,8 +29,8 @@ struct ActionCard: View {
         HStack(spacing: 14) {
             IconTile(symbol: symbol, tint: prominent ? .white.opacity(0.25) : tint, size: 40)
             VStack(alignment: .leading, spacing: 3) {
-                Text(title).font(.headline).foregroundStyle(prominent ? .white : Theme.text)
-                Text(subtitle).font(.subheadline).foregroundStyle(prominent ? .white.opacity(0.85) : Theme.textDim).fixedSize(horizontal: false, vertical: true)
+                Text(title.portholeLocalized).font(.headline).foregroundStyle(prominent ? .white : Theme.text)
+                Text(subtitle.portholeLocalized).font(.subheadline).foregroundStyle(prominent ? .white.opacity(0.85) : Theme.textDim).fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 8)
             Image(systemName: "chevron.right").font(.footnote.weight(.bold)).foregroundStyle(prominent ? .white.opacity(0.7) : Theme.textDim)
@@ -54,11 +54,11 @@ struct PageSection<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if let title { Text(title).font(.footnote.weight(.semibold)).foregroundStyle(Theme.textDim).textCase(.uppercase).padding(.horizontal, 4) }
+            if let title { Text(title.portholeLocalized).font(.footnote.weight(.semibold)).foregroundStyle(Theme.textDim).textCase(.uppercase).padding(.horizontal, 4) }
             VStack(alignment: .leading, spacing: 14) { content }
                 .padding(16).frame(maxWidth: .infinity, alignment: .leading)
                 .background(Theme.panel, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            if let footer { Text(footer).font(.footnote).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true).padding(.horizontal, 4) }
+            if let footer { Text(footer.portholeLocalized).font(.footnote).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true).padding(.horizontal, 4) }
         }
     }
 }
@@ -70,9 +70,9 @@ struct InfoRow: View {
     var monospaced = false
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
-            Text(title).foregroundStyle(Theme.text)
+            Text(title.portholeLocalized).foregroundStyle(Theme.text)
             Spacer(minLength: 12)
-            Text(value).font(monospaced ? .footnote.monospaced() : .body).foregroundStyle(Theme.textDim).multilineTextAlignment(.trailing)
+            Text(value.portholeLocalized).font(monospaced ? .footnote.monospaced() : .body).foregroundStyle(Theme.textDim).multilineTextAlignment(.trailing)
         }
     }
 }

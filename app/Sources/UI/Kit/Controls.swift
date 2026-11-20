@@ -48,7 +48,7 @@ struct PillButton: View {
         Button(action: { if enabled { action() } }) {
             HStack(spacing: 8) {
                 if let symbol { Image(systemName: symbol).font(.subheadline.weight(.bold)) }
-                Text(title).font(.system(size: 16, weight: .bold, design: .rounded)).lineLimit(1).minimumScaleFactor(0.8)
+                Text(title.portholeLocalized).font(.system(size: 16, weight: .bold, design: .rounded)).lineLimit(1).minimumScaleFactor(0.8)
             }
             .foregroundStyle(foreground)
             .padding(.vertical, 12).padding(.horizontal, 22)
@@ -119,8 +119,8 @@ struct InfoPopover: View {
         ZStack {
             AmbientBackdrop(animated: false)
             VStack(alignment: .leading, spacing: 14) {
-                if let title { Text(title).font(.system(size: 20, weight: .heavy, design: .rounded)).foregroundStyle(Theme.text) }
-                ScrollView { Text(text).font(.system(size: 16)).foregroundStyle(Theme.text.opacity(0.92)).frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true) }
+                if let title { Text(title.portholeLocalized).font(.system(size: 20, weight: .heavy, design: .rounded)).foregroundStyle(Theme.text) }
+                ScrollView { Text(text.portholeLocalized).font(.system(size: 16)).foregroundStyle(Theme.text.opacity(0.92)).frame(maxWidth: .infinity, alignment: .leading).fixedSize(horizontal: false, vertical: true) }
                 HStack {
                     if let helpMessage { PillButton(id: "info-help", title: "What does this mean?", symbol: "questionmark.circle") { DocsLink.open(helpMessage) } }
                     else if let docsTopic, DocsLink.documented(docsTopic) {
@@ -149,7 +149,7 @@ struct GlowChip: View {
     var body: some View {
         HStack(spacing: 5) {
             if let symbol { Image(systemName: symbol).font(.caption2.weight(.bold)) }
-            Text(text).font(.caption.weight(.semibold)).lineLimit(1).fixedSize()
+            Text(text.portholeLocalized).font(.caption.weight(.semibold)).lineLimit(1).fixedSize()
         }
         .foregroundStyle(tint)
         .padding(.horizontal, 10).padding(.vertical, 5)
@@ -317,6 +317,6 @@ struct IconPillButton: View {
         }
         .buttonStyle(.plain)
         .focusTarget(id, radius: 22, scale: 1.08, action: action)
-        .accessibilityLabel(label)
+        .accessibilityLabel(label.portholeLocalized)
     }
 }
