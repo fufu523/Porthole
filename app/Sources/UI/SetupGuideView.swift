@@ -181,7 +181,7 @@ struct SetupGuideView: View {
                             Capsule().fill(i <= n ? AnyShapeStyle(Theme.accentGradient) : AnyShapeStyle(Theme.panelHigh)).frame(width: 26, height: 6)
                         }
                     }
-                    Text(step.name).font(.system(size: 13, weight: .bold, design: .rounded)).foregroundStyle(Theme.textDim).lineLimit(1)
+                    Text(step.name.portholeLocalized).font(.system(size: 13, weight: .bold, design: .rounded)).foregroundStyle(Theme.textDim).lineLimit(1)
                     if let need = need(step) { tag(complete(step) ? "Done" : need.label, good: complete(step)) }
                 }
                 Spacer(minLength: 8)
@@ -211,7 +211,7 @@ struct SetupGuideView: View {
             }
             if step.number != nil, let need = need(step) {
                 HStack(spacing: 8) {
-                    Text(step.name).font(.system(size: 13, weight: .bold, design: .rounded)).foregroundStyle(Theme.textDim)
+                    Text(step.name.portholeLocalized).font(.system(size: 13, weight: .bold, design: .rounded)).foregroundStyle(Theme.textDim)
                     tag(complete(step) ? "Done" : need.label, good: complete(step))
                     Spacer()
                 }
@@ -252,7 +252,7 @@ struct SetupGuideView: View {
 
     private func header(_ title: String, info: String? = nil, infoTitle: String = "More") -> some View {
         HStack(spacing: 4) {
-            Text(title).font(.system(size: short ? 24 : 28, weight: .heavy, design: .rounded)).foregroundStyle(Theme.text).fixedSize(horizontal: false, vertical: true)
+            Text(title.portholeLocalized).font(.system(size: short ? 24 : 28, weight: .heavy, design: .rounded)).foregroundStyle(Theme.text).fixedSize(horizontal: false, vertical: true)
             if let info { InfoButton(id: "su-hdr-info", title: infoTitle, text: info) }
             Spacer()
         }
@@ -275,7 +275,7 @@ struct SetupGuideView: View {
         VStack(alignment: .leading, spacing: 14) {
             header("Get ready to play", info: "iOS keeps a speed feature called JIT switched off. Games on Porthole need it, so something has to switch it on each time you play. JIT lets an app create and run new machine code while it is running; Apple doesn't let normal apps switch it on, so a helper asks iOS for it.", infoTitle: "What is JIT?")
             if InstallCheck.layout != .full {
-                Text(InstallCheck.layoutSummary).font(.footnote).foregroundStyle(Theme.textDim).padding(.horizontal, 6)
+                Text(InstallCheck.layoutSummary.portholeLocalized).font(.footnote).foregroundStyle(Theme.textDim).padding(.horizontal, 6)
             }
             if method == .inApp && !showMethods {
                 RowBase(id: "su-method-auto", symbol: "wand.and.stars", title: "Switched on by Porthole", subtitle: "The simplest way, and what most people use", action: {}) {
@@ -421,7 +421,7 @@ struct SetupGuideView: View {
     }
 
     private func tag(_ s: String, good: Bool = false) -> some View {
-        Text(s).font(.caption2.weight(.bold)).foregroundStyle(good ? Theme.good : Theme.textDim)
+        Text(s.portholeLocalized).font(.caption2.weight(.bold)).foregroundStyle(good ? Theme.good : Theme.textDim)
             .padding(.horizontal, 8).padding(.vertical, 3).background((good ? Theme.good : Theme.textDim).opacity(0.15), in: Capsule())
     }
 }
@@ -458,8 +458,8 @@ struct SigningExplainerView: View {
 
     private func section(_ head: String, _ color: Color, _ lines: [String]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(head).font(.system(size: 17, weight: .bold, design: .rounded)).foregroundStyle(color)
-            ForEach(lines, id: \.self) { Text($0).font(.system(size: 14)).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true) }
+            Text(head.portholeLocalized).font(.system(size: 17, weight: .bold, design: .rounded)).foregroundStyle(color)
+            ForEach(lines, id: \.self) { Text($0.portholeLocalized).font(.system(size: 14)).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true) }
         }
         .padding(16).frame(maxWidth: .infinity, alignment: .leading)
         .background(Theme.panel, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
