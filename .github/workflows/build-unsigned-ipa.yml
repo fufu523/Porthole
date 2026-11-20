@@ -1,0 +1,135 @@
+# Build an UNSIGNED Porthole IPA on GitHub's macOS runners.
+#
+# Purpose: the Simplified Chinese (zh-Hans) localization can be built by
+# people who have no Mac. The resulting .ipa is unsigned, exactly like the
+# upstream releases (see docs/INSTALL.md): you sign it with your own
+# certificate / sideloader before installing it on an iPhone or iPad.
+#
+# ============================================================================
+# HONEST STATUS / KNOWN RISKS — read before expecting a green run:
+#
+# 1. This workflow has NOT been verified end-to-end. It was drafted on a
+#    Linux machine (no xcodebuild available there or here in review).
+# 2. Upstream itself says (docs/SOURCE.md, "Honest status"): a rebuild from
+#    scratch on a clean machine, following only the docs, "has not been
+#    done yet". Steps may be missing.
+# 3. The full build is much more than compiling the Swift app:
+#      - the Madeira submodule (vendor/Madeira, incl. Wine/FEX/DXMT trees)
+#        must be checked out and PATCHED (patches/0172-0176), and its
+#        native libraries must be built with the scripts in tools/ and
+#        vendor/Madeira/build/ — that is hours of native compilation and
+#        needs extra build tools (and disk) a stock runner may not have;
+#      - tools/stage_runtime.sh stages those libraries into
+#        app/RuntimeStage/, which app/project.yml references as folder
+#        resources. WITHOUT that staging step the Xcode project references
+#        missing folders and the app build will fail or produce an app
+#        with no engine inside.
+#    The "Build Madeira runtime" step below is therefore marked
+#    `continue-on-error` and is best-effort: it follows docs/SOURCE.md
+#    literally. Expect to iterate on it.
+# 4. StikJIT is NOT in git: tools/prepare_stikjit.py downloads it into
+#    app/Vendor/ (digest-checked). That step is included below.
+# 5. Xcode version: upstream develops against Xcode 27 (docs/SOURCE.md).
+#    GitHub's macos-latest image may ship an older Xcode; the setup step
+#    picks the newest Xcode installed on the image, which may still be
+#    too old for some sources (e.g. iOS 27 APIs guarded at runtime should
+#    be fine, SDK availability is the risk).
+# ============================================================================
+
+name: Build unsigned IPA (zh-Hans)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - ".github/workflows/build-unsigned-ipa.yml"
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 350   # native runtime build is long; dispatch runs only while iterating
+
+    steps:
+      - name: Check out (with Madeira submodule)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Select newest Xcode on the image
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Fetch StikJIT into app/Vendor (digest-checked, not in git)
+        run: python3 tools/prepare_stikjit.py
+
+      # ---- Best-effort native runtime (see HONEST STATUS #3 above) ----
+      # Follows docs/SOURCE.md "Rebuilding" steps 0-2. Long and fragile on
+      # a clean runner; kept continue-on-error so the Swift app build can
+      # still be attempted and its errors seen separately.
+      - name: Build Madeira runtime and stage it (best effort)
+        continue-on-error: true
+        run: |
+          git -C vendor/Madeira apply --whitespace=nowarn ../../patches/0172-engine-r28-madeira.patch
+          git -C vendor/Madeira/FEX apply --whitespace=nowarn ../../../patches/0173-engine-r28-fex.patch
+          git -C vendor/Madeira/wine apply --whitespace=nowarn ../../../patches/0174-engine-r28-wine.patch
+          git -C vendor/Madeira/dxmt apply --whitespace=nowarn ../../../patches/0175-engine-r28-dxmt.patch
+          git -C vendor/Madeira/madeira-dock apply --whitespace=nowarn ../../../patches/0176-engine-r28-madeira-dock.patch
+          tools/build_wineserver_base.sh
+          tools/build_dxmt_shader_headers.sh && tools/apply_dxmt_patch.sh
+          tools/apply_madeira_patch.sh
+          tools/build_fex_ios.sh
+          # then the build/<name>/build.sh scripts in vendor/Madeira
+          # (ntdll-unix, win32u-unix, wineserver, dxmt-ios, ffmpeg,
+          #  freetype-ios, gnutls-ios) — invoked by the scripts above /
+          #  stage_runtime.sh in upstream's own flow; see docs/REBUILD.md.
+          tools/stage_runtime.sh
+
+      - name: Create local build config
+        run: cp app/Config/Local.xcconfig.example app/Config/Local.xcconfig
+
+      - name: Generate Xcode project
+        working-directory: app
+        run: xcodegen generate
+
+      - name: Build app (unsigned, Release)
+        working-directory: app
+        run: |
+          xcodebuild -project Porthole.xcodeproj \
+            -scheme Porthole \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            build
+
+      - name: Package unsigned IPA
+        run: |
+          APP="$RUNNER_TEMP/DerivedData/Build/Products/Release-iphoneos/Porthole.app"
+          test -d "$APP" || { echo "Porthole.app not found under $APP"; exit 1; }
+          rm -rf Payload && mkdir Payload
+          cp -R "$APP" Payload/
+          # An unsigned IPA carries no _CodeSignature from this build.
+          rm -rf Payload/Porthole.app/_CodeSignature
+          zip -r -X "Porthole-unsigned-zh-Hans.ipa" Payload
+          shasum -a 256 "Porthole-unsigned-zh-Hans.ipa" > "Porthole-unsigned-zh-Hans.ipa.sha256"
+          ls -lh Porthole-unsigned-zh-Hans.ipa
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Porthole-unsigned-zh-Hans
+          path: |
+            Porthole-unsigned-zh-Hans.ipa
+            Porthole-unsigned-zh-Hans.ipa.sha256
+          if-no-files-found: error
