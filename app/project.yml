@@ -1,4 +1,13 @@
 name: Porthole
+# Localization (zh-Hans added by the Simplified Chinese localization):
+# XcodeGen writes these into the generated .pbxproj as knownRegions /
+# developmentRegion, so the Localizable.xcstrings catalog under Sources
+# (which contains en + zh-Hans) is recognised and bundled.
+knownRegions:
+  - en
+  - Base
+  - zh-Hans
+developmentRegion: en
 options:
   bundleIdPrefix: site.portholehq
   deploymentTarget: { iOS: "18.0" }
@@ -80,6 +89,8 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleDisplayName: Porthole
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, zh-Hans]
         # Per-build identity, from Config/*.xcconfig (see Identity.swift in LauncherCore).
         PortholeBuiltBundleID: $(PRODUCT_BUNDLE_IDENTIFIER)
         PortholeKeychainService: $(PORTHOLE_KEYCHAIN_SERVICE)
