@@ -21,9 +21,9 @@ struct TextFieldRow: View {
             Group {
                 if TextEntry.padMode {
                     // A plain line while a controller is connected (see TextEntry.padMode): A or a tap opens the pad keyboard, nothing raises iOS's.
-                    Text(text.isEmpty ? placeholder : (secure ? String(repeating: "\u{2022}", count: text.count) : text)).lineLimit(1)
+                    Text(text.isEmpty ? placeholder.portholeLocalized : (secure ? String(repeating: "\u{2022}", count: text.count) : text)).lineLimit(1)
                         .foregroundStyle(text.isEmpty ? Theme.textDim : Theme.accent)
-                } else if secure { SecureField(placeholder, text: $text) } else { TextField(placeholder, text: $text) }
+                } else if secure { SecureField(placeholder.portholeLocalized, text: $text) } else { TextField(placeholder.portholeLocalized, text: $text) }
             }
             .focused($focused)
             .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(keyboard)
@@ -47,8 +47,8 @@ struct ConfirmSheet: View {
         ZStack {
             AmbientBackdrop(animated: false)
             VStack(alignment: .leading, spacing: 16) {
-                Text(title).font(.system(size: 22, weight: .heavy, design: .rounded)).foregroundStyle(Theme.text)
-                if let message { Text(message).font(.body).foregroundStyle(Theme.text.opacity(0.85)).fixedSize(horizontal: false, vertical: true) }
+                Text(title.portholeLocalized).font(.system(size: 22, weight: .heavy, design: .rounded)).foregroundStyle(Theme.text)
+                if let message { Text(message.portholeLocalized).font(.body).foregroundStyle(Theme.text.opacity(0.85)).fixedSize(horizontal: false, vertical: true) }
                 Spacer(minLength: 4)
                 HStack(spacing: 12) {
                     PillButton(id: "confirm-no", title: "Cancel", symbol: "xmark") { done(false) }
@@ -106,7 +106,7 @@ struct TextReaderSheet: View {
             AmbientBackdrop(animated: false)
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
-                    Text(title).font(.system(size: 22, weight: .heavy, design: .rounded)).foregroundStyle(Theme.text).lineLimit(2)
+                    Text(title.portholeLocalized).font(.system(size: 22, weight: .heavy, design: .rounded)).foregroundStyle(Theme.text).lineLimit(2)
                     Spacer()
                     PillButton(id: "reader-close", title: "Close", symbol: "xmark", action: done)
                 }
@@ -149,7 +149,7 @@ struct KitSheet<Content: View>: View {
             AmbientBackdrop(animated: false)
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 12) {
-                    Text(title).font(.system(size: 26, weight: .heavy, design: .rounded)).foregroundStyle(Theme.text).lineLimit(1).minimumScaleFactor(0.7)
+                    Text(title.portholeLocalized).font(.system(size: 26, weight: .heavy, design: .rounded)).foregroundStyle(Theme.text).lineLimit(1).minimumScaleFactor(0.7)
                     Spacer()
                     PillButton(id: "sheet-close", title: closeTitle, symbol: closeSymbol, action: close)
                 }

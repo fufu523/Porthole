@@ -26,7 +26,7 @@ struct SetupStepper: View {
                     }
                     .frame(width: 30, height: 30)
                     .shadow(color: number == current ? Theme.accent.opacity(0.6 * Theme.glowStrength) : .clear, radius: 8)
-                    Text(name).font(.system(size: 12, weight: number == current ? .bold : .medium, design: .rounded)).foregroundStyle(number == current ? Theme.text : Theme.textDim)
+                    Text(name.portholeLocalized).font(.system(size: 12, weight: number == current ? .bold : .medium, design: .rounded)).foregroundStyle(number == current ? Theme.text : Theme.textDim)
                         .lineLimit(1).fixedSize()
                 }
                 .accessibilityElement(children: .combine)
@@ -83,11 +83,11 @@ struct SetupStepCard: View {
                     .frame(width: 20, height: 20).background(Theme.accentGradient, in: Circle()).offset(x: -4, y: -4)
             }
             VStack(alignment: .leading, spacing: 3) {
-                Text(title).font(.system(size: 17, weight: .bold, design: .rounded)).foregroundStyle(Theme.text)
-                Text(subtitle).font(.footnote).foregroundStyle(Theme.textDim).lineLimit(2)
+                Text(title.portholeLocalized).font(.system(size: 17, weight: .bold, design: .rounded)).foregroundStyle(Theme.text)
+                Text(subtitle.portholeLocalized).font(.footnote).foregroundStyle(Theme.textDim).lineLimit(2)
             }
             Spacer(minLength: 8)
-            Text(tag).font(.caption2.weight(.bold)).foregroundStyle(tagGood ? Theme.good : Theme.textDim)
+            Text(tag.portholeLocalized).font(.caption2.weight(.bold)).foregroundStyle(tagGood ? Theme.good : Theme.textDim)
                 .padding(.horizontal, 8).padding(.vertical, 3).background((tagGood ? Theme.good : Theme.textDim).opacity(0.15), in: Capsule())
         }
         .padding(14).frame(maxWidth: .infinity, alignment: .leading)
@@ -117,11 +117,11 @@ struct StoreSignInRow: View {
                     Text(store.title).font(.system(size: 16, weight: .semibold, design: .rounded)).foregroundStyle(Theme.text).lineLimit(1)
                     HStack(spacing: 5) {
                         Circle().fill(signedIn ? Theme.good : Theme.textDim.opacity(0.6)).frame(width: 7, height: 7)
-                        Text(signedIn ? "Signed in" : "Not signed in").font(.footnote).foregroundStyle(Theme.textDim)
+                        Text((signedIn ? "Signed in" : "Not signed in").portholeLocalized).font(.footnote).foregroundStyle(Theme.textDim)
                     }
                 }
                 Spacer(minLength: 8)
-                Text(signedIn ? "Open library" : "Sign in").font(.system(size: 13, weight: .heavy, design: .rounded)).foregroundStyle(signedIn ? Theme.text : Theme.onAccent)
+                Text((signedIn ? "Open library" : "Sign in").portholeLocalized).font(.system(size: 13, weight: .heavy, design: .rounded)).foregroundStyle(signedIn ? Theme.text : Theme.onAccent)
                     .padding(.horizontal, 12).padding(.vertical, 6)
                     .background(signedIn ? AnyShapeStyle(Theme.panelHigh) : AnyShapeStyle(Theme.accentGradient), in: Capsule())
             }

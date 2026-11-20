@@ -243,7 +243,7 @@ struct BadgePill: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: badge.symbol).font(.caption2.weight(.bold))
-            Text(badge.text).font(.caption2.weight(.bold)).lineLimit(1).fixedSize()
+            Text(badge.text.portholeLocalized).font(.caption2.weight(.bold)).lineLimit(1).fixedSize()
         }
         .foregroundStyle(badge.tint)
         .padding(.horizontal, 8).padding(.vertical, 4)

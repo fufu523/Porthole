@@ -131,7 +131,7 @@ enum Theme {
 
     /// A small section heading.
     static func label(_ s: String) -> some View {
-        Text(s).font(.footnote.weight(.semibold)).foregroundStyle(textDim).textCase(.uppercase).tracking(0.6)
+        Text(s.portholeLocalized).font(.footnote.weight(.semibold)).foregroundStyle(textDim).textCase(.uppercase).tracking(0.6)
     }
 }
 

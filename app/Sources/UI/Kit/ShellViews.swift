@@ -163,7 +163,7 @@ struct TabPill: View {
 
     var body: some View {
         Button(action: action) {
-            Text(tab.title)
+            Text(tab.title.portholeLocalized)
                 .font(.system(size: roomy ? 19 : (tight ? 14 : 15), weight: selected ? .heavy : .semibold, design: .rounded))
                 .foregroundStyle(selected ? Theme.text : Theme.textDim)
                 .lineLimit(1).fixedSize()

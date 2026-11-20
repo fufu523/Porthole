@@ -13,7 +13,7 @@ struct SettingsGroup<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if let title { Theme.label(title).padding(.horizontal, 6) }
-            if let note { Text(note).font(.footnote).foregroundStyle(Theme.textDim).padding(.horizontal, 6) }
+            if let note { Text(note.portholeLocalized).font(.footnote).foregroundStyle(Theme.textDim).padding(.horizontal, 6) }
             VStack(spacing: 8) { content }
         }
     }
@@ -39,8 +39,8 @@ struct PageHeader: View {
                     .shadow(color: Theme.accent.opacity(0.45 * Theme.glowStrength), radius: 10, y: 3)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.system(size: 30, weight: .heavy, design: .rounded)).foregroundStyle(Theme.text).lineLimit(2).minimumScaleFactor(0.7)
-                if let subtitle { Text(subtitle).font(.system(size: 14, design: .rounded)).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true) }
+                Text(title.portholeLocalized).font(.system(size: 30, weight: .heavy, design: .rounded)).foregroundStyle(Theme.text).lineLimit(2).minimumScaleFactor(0.7)
+                if let subtitle { Text(subtitle.portholeLocalized).font(.system(size: 14, design: .rounded)).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true) }
             }
         }
         .accessibilityElement(children: .combine)
@@ -93,10 +93,10 @@ struct RowBase<Trailing: View>: View {
                 if let symbol { IconTile(symbol: symbol, tint: destructive ? Theme.bad : tint, size: 32) }
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 0) {
-                        Text(title).font(.system(size: 16, weight: emphasized ? .bold : .semibold, design: .rounded)).foregroundStyle(destructive ? Theme.bad : emphasized ? Theme.accent : plain ? Theme.text.opacity(0.85) : Theme.text).lineLimit(2)
+                        Text(title.portholeLocalized).font(.system(size: 16, weight: emphasized ? .bold : .semibold, design: .rounded)).foregroundStyle(destructive ? Theme.bad : emphasized ? Theme.accent : plain ? Theme.text.opacity(0.85) : Theme.text).lineLimit(2)
                         if let info { InfoButton(id: "\(id)-info", title: title, text: info, docsTopic: title, compact: true) }
                     }
-                    if let subtitle { Text(subtitle).font(.footnote).foregroundStyle(Theme.textDim).lineLimit(2) }
+                    if let subtitle { Text(subtitle.portholeLocalized).font(.footnote).foregroundStyle(Theme.textDim).lineLimit(2) }
                 }
                 Spacer(minLength: 8)
                 trailing
@@ -162,7 +162,7 @@ struct ChoiceRow<T: Hashable>: View {
     var body: some View {
         RowBase(id: id, symbol: symbol, tint: tint, title: title, subtitle: subtitle, info: info, action: { open = true }) {
             HStack(spacing: 6) {
-                Text(label).font(.system(size: 15, weight: .semibold, design: .rounded)).foregroundStyle(Theme.accent).lineLimit(1)
+                Text(label.portholeLocalized).font(.system(size: 15, weight: .semibold, design: .rounded)).foregroundStyle(Theme.accent).lineLimit(1)
                 Image(systemName: "chevron.up.chevron.down").font(.caption2.weight(.bold)).foregroundStyle(Theme.textDim)
             }
         }
@@ -194,7 +194,7 @@ struct ChoiceSheet<T: Hashable>: View {
             AmbientBackdrop(animated: false)
             VStack(alignment: .leading, spacing: 14) {
                 HStack {
-                    Text(title).font(.system(size: 22, weight: .heavy, design: .rounded)).foregroundStyle(Theme.text)
+                    Text(title.portholeLocalized).font(.system(size: 22, weight: .heavy, design: .rounded)).foregroundStyle(Theme.text)
                     Spacer()
                     PillButton(id: "choice-cancel", title: "Cancel", symbol: "xmark") { done(nil) }
                 }
@@ -204,7 +204,7 @@ struct ChoiceSheet<T: Hashable>: View {
                             let option = options[i]
                             Button { done(option.0) } label: {
                                 HStack {
-                                    Text(option.1).font(.system(size: 17, weight: .semibold, design: .rounded)).foregroundStyle(Theme.text)
+                                    Text(option.1.portholeLocalized).font(.system(size: 17, weight: .semibold, design: .rounded)).foregroundStyle(Theme.text)
                                     Spacer()
                                     if option.0 == selected { Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.accent) }
                                 }
@@ -249,7 +249,7 @@ struct SliderRow: View {
             HStack(spacing: 12) {
                 if let symbol { IconTile(symbol: symbol, tint: Theme.accent, size: 32) }
                 HStack(spacing: 0) {
-                    Text(title).font(.system(size: 16, weight: .semibold, design: .rounded)).foregroundStyle(Theme.text)
+                    Text(title.portholeLocalized).font(.system(size: 16, weight: .semibold, design: .rounded)).foregroundStyle(Theme.text)
                     if let info { InfoButton(id: "\(id)-info", title: title, text: info, docsTopic: title, compact: true) }
                 }
                 Spacer()
@@ -317,13 +317,13 @@ struct ActionRow: View {
 struct BetaBadge: View {
     var text = "Beta"
     var body: some View {
-        Text(text.uppercased())
+        Text(text.portholeLocalized.uppercased())
             .font(.system(size: 10, weight: .heavy, design: .rounded)).tracking(0.8)
             .foregroundStyle(Theme.warn)
             .padding(.horizontal, 7).padding(.vertical, 3)
             .background(Capsule().fill(Theme.warn.opacity(0.16)))
             .overlay(Capsule().strokeBorder(Theme.warn.opacity(0.5), lineWidth: 1))
-            .accessibilityLabel(text)
+            .accessibilityLabel(text.portholeLocalized)
     }
 }
 
@@ -339,7 +339,7 @@ struct ValueRow: View {
         RowBase(id: id, symbol: symbol, title: title, plain: true, action: action) {
             HStack(spacing: 6) {
                 if let statusColor { Circle().fill(statusColor).frame(width: 8, height: 8).shadow(color: statusColor.opacity(0.8), radius: 3) }
-                Text(value).font(.system(size: 15, weight: .semibold, design: .rounded)).foregroundStyle(Theme.textDim).multilineTextAlignment(.trailing).lineLimit(2)
+                Text(value.portholeLocalized).font(.system(size: 15, weight: .semibold, design: .rounded)).foregroundStyle(Theme.textDim).multilineTextAlignment(.trailing).lineLimit(2)
             }
         }
     }
@@ -360,9 +360,9 @@ struct SidebarRow: View {
         Button(action: action) {
             HStack(spacing: 12) {
                 IconTile(symbol: symbol, tint: tint, size: 34)
-                Text(title).font(.system(size: 17, weight: selected ? .bold : .semibold, design: .rounded)).foregroundStyle(Theme.text).lineLimit(1)
+                Text(title.portholeLocalized).font(.system(size: 17, weight: selected ? .bold : .semibold, design: .rounded)).foregroundStyle(Theme.text).lineLimit(1)
                 Spacer(minLength: 4)
-                if let detail { Text(detail).font(.caption.weight(.bold)).foregroundStyle(Theme.onAccent).padding(.horizontal, 8).padding(.vertical, 3).background(Theme.accent, in: Capsule()) }
+                if let detail { Text(detail.portholeLocalized).font(.caption.weight(.bold)).foregroundStyle(Theme.onAccent).padding(.horizontal, 8).padding(.vertical, 3).background(Theme.accent, in: Capsule()) }
                 if !selected { Image(systemName: "chevron.right").font(.footnote.weight(.bold)).foregroundStyle(Theme.textDim) }
             }
             .padding(.horizontal, 14).frame(minHeight: 58)
