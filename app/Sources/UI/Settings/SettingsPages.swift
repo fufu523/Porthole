@@ -184,7 +184,7 @@ struct InstallCheckGroup: View {
         SettingsGroup(title: "Your install") {
             ValueRow(id: "ic-layout", symbol: "shippingbox.fill", title: InstallCheck.layoutTitle,
                      value: InstallCheck.attention.isEmpty ? "All good" : "Needs a look", statusColor: InstallCheck.attention.isEmpty ? Theme.good : Theme.warn)
-            Text(InstallCheck.layoutSummary).font(.footnote).foregroundStyle(Theme.textDim).padding(.horizontal, 6)
+            Text(InstallCheck.layoutSummary.portholeLocalized).font(.footnote).foregroundStyle(Theme.textDim).padding(.horizontal, 6)
             ForEach(items) { f in
                 let color: Color = f.level == .problem ? Theme.bad : f.level == .warning ? Theme.warn : f.level == .good ? Theme.good : Theme.textDim
                 ActionRow(id: "ic-\(f.id)", symbol: f.level == .good ? "checkmark.circle.fill" : f.level == .info ? "info.circle.fill" : "exclamationmark.triangle.fill",
