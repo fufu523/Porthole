@@ -27,7 +27,7 @@ struct GuideSheet: View {
             AmbientBackdrop(animated: false)
             VStack(spacing: 0) {
                 HStack {
-                    Text(guide.title.uppercased()).font(.footnote.weight(.bold)).foregroundStyle(Theme.textDim).tracking(0.6)
+                    Text(guide.title.portholeLocalized.uppercased()).font(.footnote.weight(.bold)).foregroundStyle(Theme.textDim).tracking(0.6)
                     Spacer()
                     if guide.steps.count > 1 { Text("\(index + 1) of \(guide.steps.count)").font(.footnote.monospacedDigit()).foregroundStyle(Theme.textDim) }
                 }
@@ -87,9 +87,9 @@ struct GuideSheet: View {
 
     private var text: some View {
         VStack(spacing: 12) {
-            if step.art != nil { Label(step.title, systemImage: step.symbol).labelStyle(TitleIconLabelStyle()) }
-            else { Text(step.title).font(.system(size: 24, weight: .heavy, design: .rounded)).foregroundStyle(Theme.text).multilineTextAlignment(.center) }
-            Text(step.text).font(.body).foregroundStyle(Theme.text.opacity(0.88)).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+            if step.art != nil { Label(step.title.portholeLocalized, systemImage: step.symbol).labelStyle(TitleIconLabelStyle()) }
+            else { Text(step.title.portholeLocalized).font(.system(size: 24, weight: .heavy, design: .rounded)).foregroundStyle(Theme.text).multilineTextAlignment(.center) }
+            Text(step.text.portholeLocalized).font(.body).foregroundStyle(Theme.text.opacity(0.88)).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
             if let action = step.action {
                 PillButton(id: "guide-action", title: action.title, symbol: action.symbol) { perform(action) }.padding(.top, 4)
             }
