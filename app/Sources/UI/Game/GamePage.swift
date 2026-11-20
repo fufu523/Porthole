@@ -454,7 +454,7 @@ struct GameSubSheet<Content: View>: View {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(spacing: 14) {
                     PillButton(id: "sub-back", title: "Back", symbol: "chevron.left", action: close)
-                    Text(title).font(.system(size: 26, weight: .heavy, design: .rounded)).foregroundStyle(Theme.text).lineLimit(1).minimumScaleFactor(0.7)
+                    Text(title.portholeLocalized).font(.system(size: 26, weight: .heavy, design: .rounded)).foregroundStyle(Theme.text).lineLimit(1).minimumScaleFactor(0.7)
                     Spacer()
                 }
                 .padding(.horizontal, 24).padding(.top, 16).padding(.bottom, 8)
