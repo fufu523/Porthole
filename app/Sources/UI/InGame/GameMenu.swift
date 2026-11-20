@@ -215,7 +215,7 @@ private struct GameMenuPanel: View {
                 Text("The menu has tabs").font(.system(size: 15, weight: .bold, design: .rounded)).foregroundStyle(Theme.text)
             }
             ForEach(GuideCatalog.gameMenu.steps, id: \.title) { step in
-                (Text(step.title + ": ").font(.system(size: 13, weight: .bold)).foregroundStyle(Theme.text) + Text(step.text).font(.system(size: 13)).foregroundStyle(Theme.text.opacity(0.85)))
+                (Text(step.title.portholeLocalized + ": ").font(.system(size: 13, weight: .bold)).foregroundStyle(Theme.text) + Text(step.text.portholeLocalized).font(.system(size: 13)).foregroundStyle(Theme.text.opacity(0.85)))
                     .fixedSize(horizontal: false, vertical: true)
             }
             Text("Swipe the menu back to the right, or tap outside it, to close it. With a controller: hold \(padKind.menuChordName) to open it, the D-pad to move, \(padKind.glyph("A")) to press, \(padKind.glyph("B")) to close, \(padKind.glyph("LB")) and \(padKind.glyph("RB")) to change tab.").font(.system(size: 12)).foregroundStyle(Theme.textDim)
@@ -289,7 +289,7 @@ private struct GameMenuPanel: View {
                 Button { model.tab = tab } label: {
                     VStack(spacing: 4) {
                         Image(systemName: tab.symbol).font(.system(size: 16, weight: .semibold)).frame(height: 20)
-                        Text(tab.title).font(.system(size: 11, weight: .semibold, design: .rounded)).lineLimit(1).minimumScaleFactor(0.72).allowsTightening(true)
+                        Text(tab.title.portholeLocalized).font(.system(size: 11, weight: .semibold, design: .rounded)).lineLimit(1).minimumScaleFactor(0.72).allowsTightening(true)
                     }
                     .foregroundStyle(on ? Theme.onAccent : Theme.textDim)
                     .padding(.horizontal, 2)
@@ -322,7 +322,7 @@ struct MenuCard<Content: View>: View {
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
             if let footer {
-                Text(footer).font(.system(size: 12)).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true)
+                Text(footer.portholeLocalized).font(.system(size: 12)).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -337,8 +337,8 @@ struct MenuChoiceRow: View {
         Button(action: action) {
             HStack(spacing: 10) {
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(title).font(.system(size: 15, weight: .semibold)).foregroundStyle(Theme.text)
-                    if let detail { Text(detail).font(.system(size: 12)).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true) }
+                    Text(title.portholeLocalized).font(.system(size: 15, weight: .semibold)).foregroundStyle(Theme.text)
+                    if let detail { Text(detail.portholeLocalized).font(.system(size: 12)).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true) }
                 }
                 Spacer(minLength: 8)
                 Image(systemName: selected ? "checkmark.circle.fill" : "circle")
@@ -361,8 +361,8 @@ struct MenuToggleRow: View {
     var body: some View {
         Toggle(isOn: $isOn) {
             VStack(alignment: .leading, spacing: 1) {
-                Text(title).font(.system(size: 15, weight: .semibold)).foregroundStyle(Theme.text)
-                if let detail { Text(detail).font(.system(size: 12)).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true) }
+                Text(title.portholeLocalized).font(.system(size: 15, weight: .semibold)).foregroundStyle(Theme.text)
+                if let detail { Text(detail.portholeLocalized).font(.system(size: 12)).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true) }
             }
         }
         .tint(Theme.accent)
@@ -382,8 +382,8 @@ struct MenuActionRow: View {
             HStack(spacing: 10) {
                 if let symbol { Image(systemName: symbol).font(.system(size: 16, weight: .semibold)).frame(width: 24).foregroundStyle(destructive ? Theme.bad : Theme.accent) }
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(title).font(.system(size: 15, weight: .semibold)).foregroundStyle(destructive ? Theme.bad : Theme.text)
-                    if let detail { Text(detail).font(.system(size: 12)).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true) }
+                    Text(title.portholeLocalized).font(.system(size: 15, weight: .semibold)).foregroundStyle(destructive ? Theme.bad : Theme.text)
+                    if let detail { Text(detail.portholeLocalized).font(.system(size: 12)).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true) }
                 }
                 Spacer(minLength: 8)
                 Image(systemName: "chevron.right").font(.system(size: 12, weight: .bold)).foregroundStyle(Theme.textDim.opacity(0.6))
@@ -407,7 +407,7 @@ struct MenuExpandRow: View {
             Button { withAnimation(.easeOut(duration: 0.2)) { open.toggle() } } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "questionmark.circle").font(.system(size: 14, weight: .semibold)).foregroundStyle(Theme.accent)
-                    Text(title).font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.accent).lineLimit(2).multilineTextAlignment(.leading)
+                    Text(title.portholeLocalized).font(.system(size: 13, weight: .semibold)).foregroundStyle(Theme.accent).lineLimit(2).multilineTextAlignment(.leading)
                     Spacer(minLength: 8)
                     Image(systemName: "chevron.down").font(.system(size: 11, weight: .bold)).foregroundStyle(Theme.textDim).rotationEffect(.degrees(open ? 180 : 0))
                 }
@@ -418,7 +418,7 @@ struct MenuExpandRow: View {
             .accessibilityAddTraits(.isButton)
             .accessibilityValue(open ? "Expanded" : "Collapsed")
             if open {
-                Text(text).font(.system(size: 12)).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true)
+                Text(text.portholeLocalized).font(.system(size: 12)).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true)
                     .padding(.horizontal, 12).padding(.bottom, 12)
             }
         }
@@ -561,8 +561,8 @@ private struct ProcessorCard: View {
                 Image(systemName: "cpu").font(.system(size: 16, weight: .semibold)).foregroundStyle(color)
                     .frame(width: 36, height: 36).background(color.opacity(0.16), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(title).font(.system(size: 15, weight: .semibold)).foregroundStyle(Theme.text)
-                    if let detail { Text(detail).font(.system(size: 12)).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true) }
+                    Text(title.portholeLocalized).font(.system(size: 15, weight: .semibold)).foregroundStyle(Theme.text)
+                    if let detail { Text(detail.portholeLocalized).font(.system(size: 12)).foregroundStyle(Theme.textDim).fixedSize(horizontal: false, vertical: true) }
                     Text("Heat: \(CPUClampMonitor.thermalName) \u{00B7} pressure: \(CPUClampMonitor.pressureName(monitor.pressure))")
                         .font(.system(size: 12, weight: .medium)).foregroundStyle(Theme.textDim.opacity(0.85))
                 }
@@ -651,14 +651,14 @@ private struct OverlayCard: View {
 
     private func labeled<V: View>(_ title: String, @ViewBuilder _ content: () -> V) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.textDim)
+            Text(title.portholeLocalized).font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.textDim)
             content()
         }
     }
 
     private func pill(_ title: String, on: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(title).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+            Text(title.portholeLocalized).font(.system(size: 13, weight: .semibold)).lineLimit(1)
                 .foregroundStyle(on ? Theme.onAccent : Theme.text)
                 .frame(maxWidth: .infinity, minHeight: 36)
                 .background(on ? AnyShapeStyle(Theme.accentGradient) : AnyShapeStyle(Theme.panelHigh), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
@@ -678,7 +678,7 @@ private struct FlowChips: View {
                 Button { overlay.toggle(metric) } label: {
                     HStack(spacing: 4) {
                         if on { Image(systemName: "checkmark").font(.system(size: 10, weight: .bold)) }
-                        Text(metric.title).font(.system(size: 13, weight: .semibold))
+                        Text(metric.title.portholeLocalized).font(.system(size: 13, weight: .semibold))
                     }
                     .foregroundStyle(on ? Theme.onAccent : Theme.text)
                     .padding(.horizontal, 11).frame(minHeight: 34)
