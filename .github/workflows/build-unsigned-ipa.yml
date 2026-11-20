@@ -6,50 +6,66 @@
 # certificate / sideloader before installing it on an iPhone or iPad.
 #
 # ============================================================================
-# HONEST STATUS / KNOWN RISKS — read before expecting a green run:
+# RUNTIME STAGING — the approach changed (see REPORT3.md for the audit):
 #
-# 1. This workflow has NOT been verified end-to-end. It was drafted on a
-#    Linux machine (no xcodebuild available there or here in review).
-# 2. Upstream itself says (docs/SOURCE.md, "Honest status"): a rebuild from
-#    scratch on a clean machine, following only the docs, "has not been
-#    done yet". Steps may be missing.
-# 3. The full build is much more than compiling the Swift app:
-#      - the Madeira submodule (vendor/Madeira, incl. Wine/FEX/DXMT trees)
-#        must be checked out and PATCHED (patches/0172-0176), and its
-#        native libraries must be built with the scripts in tools/ and
-#        vendor/Madeira/build/ — that is hours of native compilation and
-#        needs extra build tools (and disk) a stock runner may not have;
-#      - tools/stage_runtime.sh stages those libraries into
-#        app/RuntimeStage/, which app/project.yml references as folder
-#        resources. WITHOUT that staging step the Xcode project references
-#        missing folders and the app build will fail or produce an app
-#        with no engine inside.
-#    The "Build Madeira runtime" step below is therefore marked
-#    `continue-on-error` and is best-effort: it follows docs/SOURCE.md
-#    literally. Expect to iterate on it.
-# 4. StikJIT is NOT in git: tools/prepare_stikjit.py downloads it into
-#    app/Vendor/ (digest-checked). That step is included below.
-# 5. Xcode version: upstream develops against Xcode 27 (docs/SOURCE.md).
-#    GitHub's macos-latest image may ship an older Xcode; the setup step
-#    picks the newest Xcode installed on the image, which may still be
-#    too old for some sources (e.g. iOS 27 APIs guarded at runtime should
-#    be fine, SDK availability is the risk).
+# app/project.yml references 14 resources under app/RuntimeStage/Resources/
+# plus static libs in app/RuntimeStage/lib. Without them
+# `xcodegen generate` fails before any compilation. The previous workflow
+# tried to build the Madeira runtime from source on the runner
+# (continue-on-error); that path takes hours and upstream itself says a
+# clean-machine rebuild "has not been done yet" (docs/SOURCE.md).
+#
+# NEW DEFAULT: .github/scripts/stage_from_release_ipa.sh downloads the
+# UPSTREAM OFFICIAL RELEASE IPA of the SAME version as this source tree
+# (v1.3.1, build 928), verifies it against the release's own SHA-256,
+# extracts it, and copies the runtime resources it already ships into
+# app/RuntimeStage/Resources/. All 14 items were audited present in that
+# IPA (one, x86_64-vcruntime, is an empty folder in the official build by
+# design — Microsoft's VC runtime is not bundled, the app downloads it).
+# The app itself is still compiled from this repository's sources; only
+# the prebuilt runtime payload is reused. Porthole/Madeira are GPL-3.0
+# and their source is this repo + the pinned vendor/Madeira submodule.
+#
+# KNOWN GAP that remains: static libraries (RuntimeStage/lib/*.a) are NOT
+# in any IPA — they are linked into the official executable. The staging
+# script copies the few archives tracked in the Madeira snapshot
+# (libgmp/libgnutls/libhogweed/libnettle); the rest (-lntdll_unix,
+# -lwin32u_unix, -lwineserver, -ldxmt_combined, -lavcodec, ...) come only
+# from the from-source build. So the xcodebuild LINK step may still fail
+# until those are built. To run that old path, dispatch this workflow
+# with build_runtime_from_source=true (it is off for push events and by
+# default, so routine runs no longer burn hours before failing).
+#
+# Other known risks:
+# - This workflow has NOT been verified end-to-end (drafted on Linux).
+# - StikJIT is NOT in git: tools/prepare_stikjit.py downloads it into
+#   app/Vendor/ (digest-checked). That step is included below.
+# - Xcode version: upstream develops against Xcode 27 (docs/SOURCE.md).
+#   GitHub's macos-latest image may ship an older Xcode; the setup step
+#   picks the newest Xcode installed on the image, which may still be
+#   too old for some sources.
 # ============================================================================
 
 name: Build unsigned IPA (zh-Hans)
 
 on:
   workflow_dispatch:
+    inputs:
+      build_runtime_from_source:
+        description: "Also build the Madeira runtime from source (hours, unverified) instead of only staging resources from the official release IPA"
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths:
       - "app/**"
       - ".github/workflows/build-unsigned-ipa.yml"
+      - ".github/scripts/stage_from_release_ipa.sh"
 
 jobs:
   build:
     runs-on: macos-latest
-    timeout-minutes: 350   # native runtime build is long; dispatch runs only while iterating
+    timeout-minutes: 350   # only the optional from-source runtime build needs this; IPA-staged runs should be far shorter
 
     steps:
       - name: Check out (with Madeira submodule)
@@ -73,12 +89,18 @@ jobs:
       - name: Fetch StikJIT into app/Vendor (digest-checked, not in git)
         run: python3 tools/prepare_stikjit.py
 
-      # ---- Best-effort native runtime (see HONEST STATUS #3 above) ----
-      # Follows docs/SOURCE.md "Rebuilding" steps 0-2. Long and fragile on
-      # a clean runner; kept continue-on-error so the Swift app build can
-      # still be attempted and its errors seen separately.
-      - name: Build Madeira runtime and stage it (best effort)
-        continue-on-error: true
+      # ---- Default runtime staging: reuse the official release IPA ----
+      - name: Stage runtime resources from official release IPA
+        run: .github/scripts/stage_from_release_ipa.sh
+
+      # ---- Optional: build the Madeira runtime from source ----
+      # The old best-effort path, kept only as a manual opt-in. It patches
+      # and builds Wine/FEX/DXMT/FFmpeg/... and finishes with
+      # tools/stage_runtime.sh, which REPLACES the IPA staging above with
+      # locally built libraries (including RuntimeStage/lib). Long and
+      # fragile on a clean runner; expect to iterate on it.
+      - name: Build Madeira runtime from source and re-stage (opt-in)
+        if: ${{ inputs.build_runtime_from_source }}
         run: |
           git -C vendor/Madeira apply --whitespace=nowarn ../../patches/0172-engine-r28-madeira.patch
           git -C vendor/Madeira/FEX apply --whitespace=nowarn ../../../patches/0173-engine-r28-fex.patch
@@ -91,8 +113,7 @@ jobs:
           tools/build_fex_ios.sh
           # then the build/<name>/build.sh scripts in vendor/Madeira
           # (ntdll-unix, win32u-unix, wineserver, dxmt-ios, ffmpeg,
-          #  freetype-ios, gnutls-ios) — invoked by the scripts above /
-          #  stage_runtime.sh in upstream's own flow; see docs/REBUILD.md.
+          #  freetype-ios, gnutls-ios); see docs/SOURCE.md / docs/REBUILD.md.
           tools/stage_runtime.sh
 
       - name: Create local build config
